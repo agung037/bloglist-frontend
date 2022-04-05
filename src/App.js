@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
 import blogService from './services/blogs'
 import loginService from './services/login'
+import Togglable from './components/Togglable'
+import LoginForm from './components/LoginForm'
+import CreateBlogForm from './components/CreateBlogForm'
 
 
 const App = () => {
@@ -24,6 +27,7 @@ const App = () => {
     // menghindari browser untuk redirect ke halaman lain
     event.preventDefault();
     
+    
     console.log('logginin with', username, password)
 
     try{
@@ -43,12 +47,17 @@ const App = () => {
       // kosongkan kembali form
       setUsername('')
       setPassword('')
+      setSuccessMessages(`Login Success ${user.name}`)
+
+      setTimeout(() => {
+        setSuccessMessages(null)
+      }, 1000)
 
     }
     // error handling
     catch(exception){
       console.log("wrong credential")
-      setErrorMessage('Username / Password Incorect')
+      setErrorMessage('Username / Password Incorrect')
 
       // setelah 4 detik kosongkan kembali notifikasi
       setTimeout(() => {
@@ -62,6 +71,12 @@ const App = () => {
   const logoutHandler = () => {
     localStorage.removeItem("loggedBlogappUser");
     console.log('membersihkan localstorage')
+    setSuccessMessages('You are logged out')
+
+    setTimeout(() => {
+      setSuccessMessages(null)
+    }, 1000)
+
     setUser(null)
   }
 
@@ -71,6 +86,9 @@ const App = () => {
     
     // prevent default agar tidak pindah page saat submit
     event.preventDefault()
+    
+    // langsung menutup form setelah submit new blog
+    blogFormRef.current.toggleVisibility()
 
     const blogObject = {
       title: title,
@@ -102,32 +120,18 @@ const App = () => {
 
   // Form Login dalam bentuk arrow function
   const loginForm = () => (
-    <div>
-      <h1>Log in to application</h1>
-      <Notification message={errorMessage}/>
-    <form onSubmit={handleLogin}>
-      <div>
-          username
-          <input
-            type="text"
-            value={username}
-            onChange = {({target}) => setUsername(target.value)}
-          />
+    // menggunakan component togglable dan menamai button
+    <Togglable buttonLabel="Login">
+      {/* menggunakan login form dan mengirimkan beberapa parameter */}
+      <LoginForm
 
-      </div>
-
-      <div>
-        password
-        <input 
-          type="password"
-          value={password}
-          onChange = {({target}) => setPassword(target.value)}
-        />
-      </div>
-      <button type='submit'>login</button>
-
-    </form>
-    </div>
+        username={username}
+        password={password}
+        handleUsernameChange={({ target }) => setUsername(target.value)}
+        handlePasswordChange={({ target }) => setPassword(target.value)}
+        handleLogin={handleLogin}
+      />
+    </Togglable>
   )
   // akhir form login
 
@@ -139,38 +143,50 @@ const App = () => {
     </div>
   )
 
+  const blogFormRef = useRef()
 
   // function untuk membuat form input blog baru
   const formCreateBlog = () => (
-    <div>
-      <form onSubmit={createNewBlogHandler}>
-      <div>
-          title : 
-          <input
-            type="text"
-            value={title}
-            onChange = {({target}) => setTitle(target.value)}
-          />
-      </div>
-      <div>
-          author : 
-          <input
-            type="text"
-            value={author}
-            onChange = {({target}) => setAuthor(target.value)}
-          />
-      </div>
-      <div>
-          url : 
-          <input
-            type="text"
-            value={url}
-            onChange = {({target}) => setUrl(target.value)}
-          />
-      </div>
-      <button type='submit'>create</button>
-      </form>
-    </div>
+    <Togglable buttonLabel="Add new Blog" ref={blogFormRef}>
+      <CreateBlogForm
+        createNewBlogHandler={createNewBlogHandler} 
+        title={title}
+        author={author}
+        url={url}
+        handleTitleChange={({target}) => setTitle(target.value)}
+        handleAuthorChange={({target}) => setAuthor(target.value)}
+        handleUrlChange={({target}) => setUrl(target.value)}
+      />
+    </Togglable>
+    // <div>
+    //   <form onSubmit={createNewBlogHandler}>
+    //   <div>
+    //       title : 
+    //       <input
+    //         type="text"
+    //         value={title}
+    //         onChange = {({target}) => setTitle(target.value)}
+    //       />
+    //   </div>
+    //   <div>
+    //       author : 
+    //       <input
+    //         type="text"
+    //         value={author}
+    //         onChange = {({target}) => setAuthor(target.value)}
+    //       />
+    //   </div>
+    //   <div>
+    //       url : 
+    //       <input
+    //         type="text"
+    //         value={url}
+    //         onChange = {({target}) => setUrl(target.value)}
+    //       />
+    //   </div>
+    //   <button type='submit'>create</button>
+    //   </form>
+    // </div>
   )
 
   // effect untuk set blogs
@@ -203,21 +219,16 @@ const App = () => {
   }, [])
 
 
-  // jika user belum login sehingga datanya bernilai null
-  // maka tampilkan form login
-  if(user === null){
-    return loginForm()
-  }
-
-  // jika user ada maka tampilkan blog
   return (
+
     <div>
-      <h2>blogs</h2>
-      <Notification message={successMessages}/>
-      <h3>Welcome {user.name} you are logged in {logoutButton()}</h3>
+      <Notification message={errorMessage} type="error"/>
+      <Notification message={successMessages} type="success"/>
 
-      {formCreateBlog()}
+      <h2>Blogs</h2>
 
+      {user ? <h3>Welcome {user.name} you are logged in {logoutButton()}</h3> : ''}
+      {user ? formCreateBlog() : loginForm()}
       {blogs.map(blog =><Blog key={blog.id} blog={blog} />)}
     </div>
   )
