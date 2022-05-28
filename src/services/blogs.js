@@ -1,5 +1,5 @@
-import axios from 'axios'
-const baseUrl = '/api/blogs'
+import axios from "axios"
+const baseUrl = "/api/blogs"
 
 // buat variabel kosongan token, untuk diisi ketika login berhasil
 let token = null
@@ -7,15 +7,14 @@ let token = null
 // function untuk mendapatkan semua blogs
 const getAll = () => {
   const request = axios.get(baseUrl)
-  return request.then(response => response.data)
+  return request.then((response) => response.data)
 }
 
 // function untuk membuat blog baru
 const create = async (newObject) => {
-
   // tambahkan token di header untuk authorization
   const config = {
-    headers: {Authorization: token},
+    headers: { Authorization: token },
   }
 
   // mengirim permintaan post ke backend menggunakan axios
@@ -24,9 +23,35 @@ const create = async (newObject) => {
 }
 
 // function untuk menulis bearer / token, yand digunakan untuk membuat backed mempercayai browser
-const setToken = newToken => {
+const setToken = (newToken) => {
   token = `bearer ${newToken}`
 }
 
-// eslint-disable-next-line import/no-anonymous-default-export
-export default { getAll, setToken, create }
+// function untuk menambahkan like
+const like = async (blog) => {
+  console.log("adding like to =>", blog.id)
+  const blogUrl = `${baseUrl}/${blog.id}`
+
+  // buat duplikasi dan ubah like nya
+  const newObject = {
+    ...blog,
+    likes: blog.likes + 1,
+  }
+
+  const response = await axios.put(blogUrl, newObject)
+  return response.data
+}
+
+// function untuk menghapus blog
+const remove = async (blog) => {
+  const blogUrl = `${baseUrl}/${blog.id}`
+
+  const config = {
+    headers: { Authorization: token },
+  }
+
+  const response = await axios.delete(blogUrl, config)
+  return response.data
+}
+
+export default { getAll, setToken, create, like, remove }
